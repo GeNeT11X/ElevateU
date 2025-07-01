@@ -1,6 +1,6 @@
 # Resume Parser & AI-Powered Career Assistant
 
-## 📌 Overview
+## 📌 Overview-
 This project is an AI-driven Resume Parser and Career Assistant that analyzes resumes using Generative AI and provides valuable insights, including:
 - **ATS (Applicant Tracking System) Compatibility Analysis**
 - **Skill Extraction & Analysis**
