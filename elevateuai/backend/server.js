@@ -1,4 +1,5 @@
 require("dotenv").config();
+const axios = require("axios"); 
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
@@ -13,7 +14,6 @@ const upload = multer({ storage: storage });
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-
 const MAX_LIMITS = {
   skills: 25,
   experience: 25,
@@ -23,6 +23,7 @@ const MAX_LIMITS = {
   diversity_inclusion: 100,
   industry_benchmark: 100,
 };
+
 function scaleScores(rawScores) {
   let scaledScores = {};
   let totalScore = 0;
@@ -40,6 +41,7 @@ function scaleScores(rawScores) {
   });
   return { scaledScores, totalScore };
 }
+
 async function searchJobs(queryOptions) {
   try {
     const response = await query(queryOptions);
@@ -62,6 +64,7 @@ app.post("/analyze", upload.single("resume"), async (req, res) => {
     if (!text) {
       return res.status(400).json({ error: "Unable to extract text from PDF" });
     }
+
     const createAnalysisPrompt = (text, industryBenchmarks, atsKeywords) => {
       const benchmarksStr = JSON.stringify(industryBenchmarks, null, 2);
       const keywordsStr = JSON.stringify(atsKeywords, null, 2);
@@ -159,56 +162,65 @@ ${text}
 `;
     };
 
-    // Usage example:
     const prompt = createAnalysisPrompt(
       text,
       INDUSTRY_BENCHMARKS,
       ATS_KEYWORDS
     );
-    const response = await fetch("https://api.cohere.ai/v1/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.COHERE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "command-r-plus",
-        prompt: prompt,
-        max_tokens: 4000,
-        temperature: 0.7,
-      }),
-    });
+   const response = await fetch("https://api.cohere.ai/v1/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${process.env.COHERE_API_KEY}`,
+  },
+  body: JSON.stringify({
+      model: "command-r-08-2024", 
+    message: prompt,
+    temperature: 0.7,
+    max_tokens: 4000,
+  }),
+});
+
     if (!response.ok) {
       const errorMessage = await response.text();
       console.error("API Error:", errorMessage);
       throw new Error(`API request failed: ${errorMessage}`);
     }
+
     const completion = await response.json();
     console.log("Raw AI Response:", completion);
-    const responseContent = completion?.generations?.[0]?.text || "";
-    if (!responseContent) {
-      throw new Error("Empty or invalid response content");
-    }
+    const responseContent =
+  completion?.text ||
+  completion?.message ||
+  completion?.output_text ||
+  completion?.generations?.[0]?.text ||
+  "";
 
-    let analysis;
-    try {
-      analysis = JSON.parse(responseContent);
-      console.log("Parsed AI Response:", analysis);
-    } catch (error) {
-      console.error("Failed to parse AI response:", error);
-      console.log("Raw response:", responseContent);
-      res.status(500).json({
-        error: "Failed to parse AI response",
-        details: error.message,
-      });
-      return;
-    }
+if (!responseContent) {
+  throw new Error("Empty or invalid response content");
+}
+
+let analysis;
+try {
+  analysis = JSON.parse(responseContent);
+  console.log("Parsed AI Response:", analysis);
+} catch (error) {
+  console.error("Failed to parse AI response:", error);
+  console.log("Raw response:", responseContent);
+  res.status(500).json({
+    error: "Failed to parse AI response",
+    details: error.message,
+  });
+  return;
+}
     if (!analysis.score?.breakdown) {
       throw new Error("Missing score breakdown in the response");
     }
+
     const { scaledScores, totalScore } = scaleScores(analysis.score.breakdown);
     analysis.score.breakdown = scaledScores;
     analysis.score.total = totalScore;
+
     const jobQuery = {
       keyword: analysis.skills_analysis.strong_skills.join(", "),
       location: analysis.location,
@@ -216,14 +228,35 @@ ${text}
       limit: 5,
       page: "0",
     };
+
     if (
-      analysis.location != null ||
-      analysis.location != "Unspecified" ||
-      analysis.skills_analysis.strong_skills
+      analysis.location &&
+      analysis.location !== "Unspecified" &&
+      analysis.skills_analysis.strong_skills?.length
     ) {
+      // Get job search results
       const jobSearchResults = await searchJobs(jobQuery);
       analysis.job_search_results = jobSearchResults;
+
+      // Get course recommendations
+      try {
+        const courseResponse = await axios.get(
+          `http://localhost:5001/recommend`,
+          {
+            params: {
+              skills: analysis.skills_analysis.strong_skills.join(","),
+            },
+          }
+        );
+        analysis.course_recommendations = courseResponse.data;
+      } catch (courseErr) {
+        console.error("Course Recommendation Error:", courseErr.message);
+        analysis.course_recommendations = { 
+          error: "Failed to fetch course recommendations" 
+        };
+      }
     }
+
     res.json(analysis);
   } catch (error) {
     console.error("Error:", error);

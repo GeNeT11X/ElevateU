@@ -1,101 +1,177 @@
-# Resume Parser & AI-Powered Career Assistant
+# ElevateU+ – AI Resume Intelligence & Learning Companion
 
-## 📌 Overview-
-This project is an AI-driven Resume Parser and Career Assistant that analyzes resumes using Generative AI and provides valuable insights, including:
-- **ATS (Applicant Tracking System) Compatibility Analysis**
-- **Skill Extraction & Analysis**
-- **Job Role Recommendations**
-- **Personalized Course Recommendations**
-- **AI Chatbot for Career Guidance**
+ElevateU+ combines AI-powered resume analysis with personalized learning recommendations so that job seekers can understand where they stand and what to learn next. The solution is composed of two collaborating services:
 
-With the power of **Generative AI APIs**, this tool helps users optimize their resumes, discover career opportunities, and upskill effectively.
+1. **elevateuai** – a Node.js API that ingests PDF resumes, calls Cohere for deep analysis, enriches the output with LinkedIn job scraping, and serves the React front end.
+2. **courserecom** – a lightweight Flask service that generates course suggestions (Coursera catalogue + similarity models) based on the skills detected in the resume.
 
-## 🚀 Features
-- ✅ **Resume Parsing:** Extracts key details like skills, experience, and education.
-- ✅ **ATS Compatibility Check:** Ensures resume meets industry standards for applicant tracking systems.
-- ✅ **Skill Gap Analysis:** Compares existing skills with industry expectations.
-- ✅ **Job Role Suggestions:** Recommends suitable job positions based on resume analysis.
-- ✅ **Personalized Course Recommendations:** Uses Generative AI to suggest courses tailored to the user’s career path.
-- ✅ **AI Chatbot:** Engages users in career-related discussions and provides instant recommendations.
-
-## 🛠️ Tech Stack
-- **Frontend:** React.js (for UI/UX)
-- **Backend:** Node.js & Express.js
-- **Database:** MongoDB (for storing user data and parsed resumes)
-- **AI Integration:** OpenAI API (for resume analysis and recommendations)
-- **Authentication:** JWT-based secure authentication
-
-## 📂 Folder Structure
-```
-📦 ResumeParser-AI
-├── 📂 backend
-│   ├── 📂 routes
-│   ├── 📂 utils
-│   ├── server.js
-│   ├── config.js
-├── 📂 frontend
-│   ├── 📂 components
-│   ├── 📂 pages
-│   ├── App.js
-│   ├── index.js
-└── README.md
-```
-
-## 🔧 Installation & Setup
-### 1️⃣ Clone the repository
-```sh
- git clone https://github.com/your-username/resume-parser-ai.git
- cd resume-parser-ai
-```
-
-### 2️⃣ Install Dependencies
-#### Backend
-```sh
- cd backend
- npm install
-```
-#### Frontend
-```sh
- cd frontend
- npm install
-```
-
-### 3️⃣ Set Up Environment Variables
-Create a `.env` file in the backend directory and add:
-```
-OPENAI_API_KEY=your_openai_api_key_here
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-```
-
-### 4️⃣ Run the Application
-#### Backend
-```sh
- cd backend
- npm start
-```
-#### Frontend
-```sh
- cd frontend
- npm start
-```
-
-## 📜 Usage
-1. Upload a resume (PDF/DOCX format)
-2. The AI extracts skills, experience, and ATS score
-3. Get insights on job roles and missing skills
-4. Receive personalized course recommendations
-5. Chat with the AI-powered career assistant for tailored guidance
-
-## 🤝 Contributions
-Contributions are welcome! Feel free to submit issues or pull requests.
-
-## 🛡️ License
-This project is licensed under the MIT License.
-
-## 📧 Contact
-For any queries, reach out to hardiksharma08300@gmail.com.
+Together they deliver an end-to-end experience: upload a resume → receive ATS insights, benchmark scores, job leads, and curated courses to close skill gaps.
 
 ---
-**Star ⭐ this repository if you find it useful!**
 
+## Core Capabilities
+- **Resume analytics** – Cohere `command-r` prompts extract strengths, weaknesses, salary ranges, and keyword coverage.
+- **ATS & benchmark scoring** – Resume sections are scored (skills, experience, education, achievements) and normalised against industry benchmarks bundled in `industry_benchmarks.js`.
+- **Keyword intelligence** – Detects present and missing ATS keywords per industry, and surfaces improvement tips.
+- **Job discovery** – Scrapes LinkedIn guest listings for matching roles (see `web-scrape.js`), with caching to reduce throttling.
+- **Course recommendations** – Fetches courses from the Flask microservice (`GET /recommend`) using extracted strong skills.
+- **Modern UI** – React + Vite front end with Auth0 scaffolding for login and animated visualisations of the analytics.
+
+---
+
+## System Architecture
+```
+┌─────────────┐   POST /analyze (PDF)   ┌───────────────────────────┐   GET /recommend?skills=...   ┌────────────────────┐
+│ React (Vite)├────────────────────────►│ Node+Express (elevateuai) │──────────────────────────────►│ Flask (courserecom)│
+└─────────────┘   analysis JSON         │ • Cohere resume analysis  │   course suggestions JSON     │ • Coursera search   │
+       ▲                                 │ • LinkedIn job scraping   │                              │ • Similarity model  │
+       │                                 └───────────────────────────┘                              └────────────────────┘
+       └────────────────────────────── Rendered insights ◄──────────────────────────────────────────────────────────────┘
+```
+Both services run locally (by default on ports `5173`, `8080`, and `5001`). The Node API expects the Flask recommender to be reachable at `http://localhost:5001/recommend`.
+
+---
+
+## Repository Layout
+```
+├─ elevateuai/                 # Resume intelligence stack
+│  ├─ backend/                 # Node.js API (Express, Cohere integration, job scraping)
+│  └─ frontend/                # React + Vite client with Auth0-powered login screen
+├─ courserecom/                # Course recommendation microservice (Flask)
+│  ├─ app/                     # Original web app, models, and assets (Coursera dataset)
+│  ├─ run.py                   # Lightweight /recommend endpoint used by elevateuai
+│  └─ requirements.txt         # Python dependencies
+└─ README.md                   # You are here
+```
+
+---
+
+## Prerequisites
+- **Node.js 18+** (ships with `npm`)
+- **Python 3.10+** with `pip` / `venv`
+- **Cohere API key** for resume analysis (`command-r-08-2024` model)
+- Optional: Auth0 application (replace sample domain/client ID in `elevateuai/frontend/src/main.jsx`)
+
+---
+
+## Getting Started
+
+### 1. Clone
+```powershell
+git clone https://github.com/<your-username>/elevateuplus.git
+cd elevateuplus
+```
+
+### 2. Course Recommender (Flask – port 5001)
+```powershell
+cd courserecom
+python -m venv .venv
+.venv\Scripts\activate        # or source .venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+python run.py                 # serves GET /recommend
+```
+`run.py` calls Coursera’s public search API and the in-repo similarity model for better matches. Keep this service running before you hit the Node API.
+
+### 3. Resume Intelligence API (Node – port 8080)
+```powershell
+cd elevateuai\backend
+npm install
+```
+Create `.env` in `elevateuai/backend`:
+```
+COHERE_API_KEY=your_cohere_api_key
+PORT=8080                       # optional override
+```
+> **Note:** `server.js` currently defaults to `http://localhost:5001/recommend`. If you host the course service elsewhere, update the URL in `elevateuai/backend/server.js` (or extend it to read from an environment variable) before starting the API.  
+Start the API:
+```powershell
+npm start
+```
+`npm start` uses `nodemon` for hot reloads.
+
+### 4. Front End (React – Vite dev server on port 5173)
+```powershell
+cd elevateuai\frontend
+npm install
+```
+Optionally create `.env` (Vite automatically loads `.env.local` etc.):
+```
+VITE_API_URL=http://localhost:8080/analyze
+```
+Run the UI:
+```powershell
+npm run dev
+```
+Open the printed URL (typically `http://localhost:5173`). Upload a PDF resume and monitor the terminal logs for Cohere responses and course fetches.
+
+---
+
+## API Reference
+- `POST /analyze` (Express, `elevateuai/backend/server.js`)
+  - **Body:** `multipart/form-data` with `resume=<PDF>`
+  - **Response:** Detailed JSON containing scores, keyword analysis, job listings, and `course_recommendations` from the Flask service.
+- `GET /recommend` (Flask, `courserecom/run.py`)
+  - **Query:** `skills=python,ml,sql`
+  - **Response:** `{ "recommended_courses": [ { "title": "...", "platform": "Coursera", "id": "...", "slug": "..." }, ... ] }`
+
+The React UI consumes the `/analyze` endpoint directly; the jobs and course sub-sections render conditionally from the API payload.
+
+---
+
+## Configuration & Extensibility
+- **Auth0 Login:** Update `domain` and `clientId` in `elevateuai/frontend/src/main.jsx` to wire in your own Auth0 tenant.
+- **LinkedIn Scraping:** `web-scrape.js` performs guest scraping without authentication. Respect LinkedIn’s terms, expect rate limits, and consider adding proxy/cookie support if you need higher throughput.
+- **Course Dataset:** `courserecom/app/api/assets/Coursera.csv` backs the similarity model. Replace or extend this data to cover more providers or update metadata.
+- **Prompt Tuning:** Adjust the Cohere prompt in `server.js` (`createAnalysisPrompt`) to change scoring behaviour or add extra sections.
+- **Environment Variables:** Use `.env` files (Node) and standard Flask config patterns (Python) to keep secrets out of source control.
+
+---
+
+## Running Everything Together
+Open three terminals from the repo root:
+
+```powershell
+# Terminal 1 – Flask recommender
+cd courserecom
+.venv\Scripts\activate
+python run.py
+
+# Terminal 2 – Node resume analyzer
+cd elevateuai\backend
+npm start
+
+# Terminal 3 – React front end
+cd elevateuai\frontend
+npm run dev
+```
+After all services report “running”, browse to `http://localhost:5173`, upload a PDF resume, and scroll to see ATS scores, job listings, and recommended courses.
+
+---
+
+## Troubleshooting
+- **Empty AI response:** Verify `COHERE_API_KEY` and that your Cohere account has access to `command-r-08-2024`.
+- **Course recommendations unavailable:** Ensure the Flask service is listening on port `5001` and reachable from Node (check console logs for `Course Recommendation Error`).
+- **LinkedIn job scraping blocked:** Wait a few minutes, reduce frequency, or configure a proxy. Excessive requests may trigger rate limits.
+- **Auth0 login loop:** Provide a valid Auth0 app or bypass Auth0 by simplifying `main.jsx` to render `<App />` directly.
+
+---
+
+## Publishing & Contribution Tracking
+1. Add your GitHub remote and push:
+   ```powershell
+   git remote add origin https://github.com/<your-username>/elevateuplus.git
+   git push -u origin main
+   ```
+2. On GitHub, open **Insights → Contributors** to see who has committed to the repository.
+3. Use `git log --stat` locally if you need a detailed author breakdown before pushing.
+
+---
+
+## Contributing
+Pull requests are welcome. Please open an issue describing the change you intend to make, include testing notes (manual or automated), and keep secrets out of commits.
+
+---
+
+
+---
+Star ⭐ the repo if ElevateU+ helped you polish your resume! 🎯
