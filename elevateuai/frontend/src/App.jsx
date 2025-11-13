@@ -106,66 +106,107 @@ const Loader = () => (
     </div>
   </div>
 );
+const getProviderColor = (provider) => {
+  const colors = {
+    "Coursera": "from-blue-500 to-blue-600",
+    "Udemy": "from-purple-500 to-purple-600",
+    "edX": "from-indigo-500 to-indigo-600",
+    "Khan Academy": "from-emerald-500 to-emerald-600",
+    "default": "from-gray-500 to-gray-600"
+  };
+  return colors[provider] || colors.default;
+};
+
+const getProviderBadgeColor = (provider) => {
+  const colors = {
+    "Coursera": "bg-blue-100 text-blue-700 border-blue-300",
+    "Udemy": "bg-purple-100 text-purple-700 border-purple-300",
+    "edX": "bg-indigo-100 text-indigo-700 border-indigo-300",
+    "Khan Academy": "bg-emerald-100 text-emerald-700 border-emerald-300",
+    "default": "bg-gray-100 text-gray-700 border-gray-300"
+  };
+  return colors[provider] || colors.default;
+};
+
 const Courses = ({ courses = [] }) => {
   if (!courses?.length) return <p className="text-center text-gray-500">No courses available.</p>;
 
   return (
-    <div className="p-6 sm:p-8 w-full mt-8">
-      <div className="bg-white w-full lg:max-w-screen-xl rounded-2xl text-gray-900 shadow-lg">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-            📚 Recommended Courses
-          </h2>
-        </div>
-
-        <div className="overflow-x-auto w-full">
-          <div className="flex gap-4 min-w-max pb-4">
-            {courses.map((course, idx) => (
-              <div
-                key={idx}
-                className="w-full sm:w-80 bg-gradient-to-b from-green-100 to-white p-4 sm:p-6 rounded-xl border border-green-300 hover:border-green-400 transition-all group"
-              >
-                <div className="flex flex-col h-full">
-                  {course.image && (
-                    <div className="mb-4">
-                      <img
-                        src={course.image}
-                        alt={course.title}
-                        className="w-full h-40 rounded-lg object-cover bg-gray-100"
-                      />
-                    </div>
-                  )}
-
-                  <h3 className="text-lg font-semibold text-gray-800 group-hover:text-gray-700 transition-colors mb-2 line-clamp-2">
-                    {course.title}
-                  </h3>
-
-                  <div className="flex items-center gap-2 text-green-600 mb-4">
-                    <span className="font-medium truncate">{course.provider}</span>
-                  </div>
-
-                  <div className="space-y-2 mb-6 flex-grow">
-                    <div className="flex items-center gap-2 text-green-600/80">
-                      <span>📍 {course.category}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-green-600/80">
-                      <span>⏳ {course.duration}</span>
-                    </div>
-                  </div>
-
-                  <a
-                    href={course.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 sm:py-2.5 bg-green-500/20 hover:bg-green-500/30 text-green-700 hover:text-green-600 rounded-lg transition-all font-medium"
-                  >
-                    View Course
-                  </a>
-                </div>
+    <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {courses.map((course, idx) => (
+          <div
+            key={idx}
+            className="group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-purple-300 flex flex-col"
+          >
+            {/* Course Image */}
+            {course.image ? (
+              <div className="relative h-48 overflow-hidden bg-gradient-to-br from-purple-100 to-blue-100">
+                <img
+                  src={course.image}
+                  alt={course.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
               </div>
-            ))}
+            ) : (
+              <div className={`h-48 bg-gradient-to-br ${getProviderColor(course.provider || "default")} flex items-center justify-center`}>
+                <span className="text-white text-4xl font-bold opacity-50">
+                  {course.provider?.charAt(0) || "📚"}
+                </span>
+              </div>
+            )}
+
+            {/* Provider Badge */}
+            <div className="absolute top-3 right-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getProviderBadgeColor(course.provider || "default")} backdrop-blur-sm bg-white/90`}>
+                {course.provider || "Course"}
+              </span>
+            </div>
+
+            {/* Course Content */}
+            <div className="p-5 flex flex-col flex-grow">
+              <h3 className="text-lg font-bold text-gray-900 group-hover:text-purple-600 transition-colors mb-3 line-clamp-2 min-h-[3.5rem]">
+                {course.title}
+              </h3>
+
+              {/* Course Details */}
+              <div className="space-y-2 mb-4 flex-grow">
+                {course.category && (
+                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                    <span className="text-purple-500">📍</span>
+                    <span className="truncate">{course.category}</span>
+                  </div>
+                )}
+                {course.similarity && (
+                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    <span>{(course.similarity * 100).toFixed(0)}% Match</span>
+                  </div>
+                )}
+                {course.duration && (
+                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span>{course.duration}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button */}
+              <a
+                href={course.url || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`mt-auto inline-flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r ${getProviderColor(course.provider || "default")} text-white font-bold rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200`}
+              >
+                <span className="text-base font-extrabold drop-shadow-lg tracking-wide">View Course</span>
+                <ExternalLink className="w-4 h-4 drop-shadow-md" />
+              </a>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -177,67 +218,76 @@ const Jobs = ({ jobs = [] }) => {
   if (!jobs?.length) return null;
   const displayJobs = jobs;
   return (
-    <div className="p-6 sm:p-8 w-full mt-8">
-      <div className="bg-white w-full lg:max-w-screen-xl rounded-2xl text-gray-900 shadow-lg">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-            <Briefcase className="w-8 h-8 text-blue-500" />
-            Matching Job Opportunities
-          </h2>
-        </div>
-
-        <div className="overflow-x-auto w-full">
-          <div className="flex gap-4 min-w-max pb-4">
-            {displayJobs.map((job, idx) => (
-              <div
-                key={idx}
-                className="w-full sm:w-80 bg-gradient-to-b from-blue-100 to-white p-4 sm:p-6 rounded-xl border border-blue-300 hover:border-blue-400 transition-all group"
-              >
-                <div className="flex flex-col h-full">
-                  {job.companyLogo && (
-                    <div className="mb-4">
-                      <img
-                        src={job.companyLogo}
-                        alt={`${job.company} logo`}
-                        className="w-12 h-12 rounded-lg object-contain bg-gray-100 p-1"
-                      />
-                    </div>
-                  )}
-
-                  <h3 className="text-lg font-semibold text-gray-800 group-hover:text-gray-700 transition-colors mb-2 line-clamp-2">
-                    {job.position}
-                  </h3>
-
-                  <div className="flex items-center gap-2 text-blue-600 mb-4">
-                    <Building2 className="w-4 h-4 flex-shrink-0" />
-                    <span className="font-medium truncate">{job.company}</span>
-                  </div>
-
-                  <div className="space-y-2 mb-6 flex-grow">
-                    <div className="flex items-center gap-2 text-blue-600/80">
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{job.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-blue-600/80">
-                      <Clock className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{job.agoTime}</span>
-                    </div>
-                  </div>
-
-                  <a
-                    href={job.jobUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 sm:py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-700 hover:text-blue-600 rounded-lg transition-all font-medium"
-                  >
-                    View Position
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
+    <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {displayJobs.map((job, idx) => (
+          <div
+            key={idx}
+            className="group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-blue-400 flex flex-col"
+          >
+            {/* Company Logo Header */}
+            <div className="relative h-32 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+              {job.companyLogo ? (
+                <img
+                  src={job.companyLogo}
+                  alt={`${job.company} logo`}
+                  className="max-w-20 max-h-20 object-contain rounded-lg bg-white p-2 shadow-sm"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className="hidden items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-2xl font-bold">
+                {job.company?.charAt(0) || "J"}
               </div>
-            ))}
+            </div>
+
+            {/* Job Content */}
+            <div className="p-5 flex flex-col flex-grow">
+              <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-3 line-clamp-2 min-h-[3.5rem]">
+                {job.position}
+              </h3>
+
+              {/* Company Name */}
+              <div className="flex items-center gap-2 text-blue-600 mb-4">
+                <Building2 className="w-5 h-5 flex-shrink-0" />
+                <span className="font-semibold truncate">{job.company}</span>
+              </div>
+
+              {/* Job Details */}
+              <div className="space-y-2.5 mb-4 flex-grow">
+                <div className="flex items-center gap-2 text-gray-600 text-sm">
+                  <MapPin className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                  <span className="truncate">{job.location || "Location not specified"}</span>
+                </div>
+                {job.agoTime && (
+                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                    <Clock className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                    <span className="truncate">{job.agoTime}</span>
+                  </div>
+                )}
+                {job.salary && job.salary !== "Not specified" && (
+                  <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                    <span>💰</span>
+                    <span>{job.salary}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button */}
+              <a
+                href={job.jobUrl || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-auto inline-flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <span className="text-base font-extrabold drop-shadow-lg tracking-wide">View Position</span>
+                <ExternalLink className="w-4 h-4 drop-shadow-md" />
+              </a>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -806,21 +856,74 @@ export default function ResumeAnalyzer() {
                   </div>
                 </div>
               </div>
-              {/* Job Section */}
-              {/* {results?.courses_search_results?.length > 0 && */(
-                <div className="bg-white flex p-4 sm:p-6 rounded-xl border border-purple-200 mt-8 shadow-sm" style={{justifyContent:'space-between'}}>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
-                    Course Recommendation
-                  </h2>
-                <a href="http://127.0.0.1:5000/" style={{textDecoration:'none'}}><button style={{color:'whitesmoke',backgroundColor:'purple',width:'20vw'}}>go to Courses</button></a>
-                  {/* <Courses courses={results.courses_search_results} /> */}
+              {/* Course Recommendations Section */}
+              {results?.course_recommendations && (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 text-gray-800 mt-8 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                        📚 Recommended Courses
+                      </h2>
+                      {results.course_recommendations.providers && results.course_recommendations.providers.length > 0 && (
+                        <p className="text-sm text-gray-600">
+                          From {results.course_recommendations.providers.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    {results.course_recommendations.count && (
+                      <div className="mt-2 sm:mt-0">
+                        <span className="inline-flex items-center px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                          {results.course_recommendations.count} courses found
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {results.course_recommendations.error ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-red-800 font-semibold mb-1">
+                            {results.course_recommendations.error}
+                          </p>
+                          <p className="text-sm text-red-600">
+                            Make sure the course recommendation service is running on port 5001.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : results.course_recommendations.recommended_courses?.length > 0 ? (
+                    <Courses courses={results.course_recommendations.recommended_courses.map(course => ({
+                      title: course.title || course.name || "Untitled Course",
+                      provider: course.provider || course.platform || "Coursera",
+                      category: course.category || "General",
+                      duration: course.duration || "Self-paced",
+                      url: course.url || (course.slug ? `https://www.coursera.org/learn/${course.slug}` : "#"),
+                      image: course.image || null,
+                      similarity: course.similarity || null
+                    }))} />
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                      <p className="text-yellow-800">
+                        No course recommendations available at this time.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               {results?.job_search_results?.length > 0 && (
-                <div className="bg-white p-4 sm:p-6 rounded-xl border border-purple-200 mt-8 shadow-sm">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">
-                    Job Listings
-                  </h2>
+                <div className="bg-white rounded-2xl p-6 sm:p-8 text-gray-800 mt-8 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-0 flex items-center gap-3">
+                      <Briefcase className="w-8 h-8 text-blue-500" />
+                      Matching Job Opportunities
+                    </h2>
+                    <div className="mt-2 sm:mt-0">
+                      <span className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                        {results.job_search_results.length} positions found
+                      </span>
+                    </div>
+                  </div>
                   <Jobs jobs={results.job_search_results} />
                 </div>
               )}

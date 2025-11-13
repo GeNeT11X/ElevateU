@@ -225,7 +225,7 @@ try {
       keyword: analysis.skills_analysis.strong_skills.join(", "),
       location: analysis.location,
       experienceLevel: analysis.experience_level,
-      limit: 5,
+      limit: 12,
       page: "0",
     };
 
@@ -240,20 +240,42 @@ try {
 
       // Get course recommendations
       try {
-        const courseResponse = await axios.get(
-          `http://localhost:5001/recommend`,
-          {
-            params: {
-              skills: analysis.skills_analysis.strong_skills.join(","),
-            },
-          }
-        );
-        analysis.course_recommendations = courseResponse.data;
+        const skills = analysis.skills_analysis?.strong_skills || [];
+        if (skills.length > 0) {
+          const courseResponse = await axios.get(
+            `http://localhost:5001/recommend`,
+            {
+              params: {
+                skills: skills.join(","),
+              },
+              timeout: 10000, // 10 second timeout
+            }
+          );
+          analysis.course_recommendations = courseResponse.data;
+        } else {
+          analysis.course_recommendations = {
+            error: "No skills detected in resume for course recommendations",
+            recommended_courses: []
+          };
+        }
       } catch (courseErr) {
         console.error("Course Recommendation Error:", courseErr.message);
-        analysis.course_recommendations = { 
-          error: "Failed to fetch course recommendations" 
-        };
+        if (courseErr.code === 'ECONNREFUSED') {
+          analysis.course_recommendations = { 
+            error: "Course recommendation service is not running. Please start the Flask service on port 5001.",
+            recommended_courses: []
+          };
+        } else if (courseErr.response) {
+          analysis.course_recommendations = { 
+            error: `Course service error: ${courseErr.response.data?.error || courseErr.message}`,
+            recommended_courses: []
+          };
+        } else {
+          analysis.course_recommendations = { 
+            error: `Failed to fetch course recommendations: ${courseErr.message}`,
+            recommended_courses: []
+          };
+        }
       }
     }
 
