@@ -58,7 +58,7 @@ Both services run locally (by default on ports `5173`, `8080`, and `5001`). The 
 
 ### 1. Clone
 ```powershell
-git clone https://github.com/<your-username>/elevateuplus.git
+git clone https://github.com/<your-username>/elevateuplus.git](https://github.com/GeNeT11X/ElevateU.git
 cd elevateuplus
 ```
 
