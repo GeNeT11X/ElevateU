@@ -128,6 +128,14 @@ const getProviderBadgeColor = (provider) => {
   return colors[provider] || colors.default;
 };
 
+const getDifficultyColor = (level = "") => {
+  const key = level.toLowerCase();
+  if (key.includes("begin")) return "bg-green-100 text-green-700 border-green-300";
+  if (key.includes("inter")) return "bg-amber-100 text-amber-700 border-amber-300";
+  if (key.includes("adv")) return "bg-red-100 text-red-700 border-red-300";
+  return "bg-gray-100 text-gray-600 border-gray-300";
+};
+
 const Courses = ({ courses = [] }) => {
   if (!courses?.length) return <p className="text-center text-gray-500">No courses available.</p>;
 
@@ -166,27 +174,69 @@ const Courses = ({ courses = [] }) => {
               </span>
             </div>
 
+            {/* Match Score Ribbon */}
+            {course.matchScore != null && (
+              <div className="absolute top-3 left-3">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-green-600 shadow-md">
+                  <Star className="w-3 h-3 fill-white" />
+                  {course.matchScore}% Match
+                </span>
+              </div>
+            )}
+
             {/* Course Content */}
             <div className="p-5 flex flex-col flex-grow">
               <h3 className="text-lg font-bold text-gray-900 group-hover:text-purple-600 transition-colors mb-3 line-clamp-2 min-h-[3.5rem]">
                 {course.title}
               </h3>
 
+              {/* Badges: difficulty + rating */}
+              {(course.difficulty || course.rating) && (
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {course.difficulty && (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getDifficultyColor(course.difficulty)}`}>
+                      {course.difficulty}
+                    </span>
+                  )}
+                  {course.rating ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-300">
+                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                      {Number(course.rating).toFixed(1)}
+                    </span>
+                  ) : null}
+                </div>
+              )}
+
               {/* Course Details */}
               <div className="space-y-2 mb-4 flex-grow">
+                {course.university && (
+                  <div className="flex items-center gap-2 text-gray-600 text-sm">
+                    <span className="text-purple-500">🏛️</span>
+                    <span className="truncate">{course.university}</span>
+                  </div>
+                )}
                 {course.category && (
                   <div className="flex items-center gap-2 text-gray-600 text-sm">
                     <span className="text-purple-500">📍</span>
                     <span className="truncate">{course.category}</span>
                   </div>
                 )}
-                {course.similarity && (
+                {course.matchScore == null && course.similarity && (
                   <div className="flex items-center gap-2 text-gray-600 text-sm">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                     <span>{(course.similarity * 100).toFixed(0)}% Match</span>
                   </div>
                 )}
-                {course.duration && (
+                {course.matchedSkills?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {course.matchedSkills.slice(0, 3).map((skill, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-md text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {course.duration && !course.university && (
                   <div className="flex items-center gap-2 text-gray-600 text-sm">
                     <Clock className="w-4 h-4 text-gray-400" />
                     <span>{course.duration}</span>
@@ -900,7 +950,12 @@ export default function ResumeAnalyzer() {
                       duration: course.duration || "Self-paced",
                       url: course.url || (course.slug ? `https://www.coursera.org/learn/${course.slug}` : "#"),
                       image: course.image || null,
-                      similarity: course.similarity || null
+                      similarity: course.similarity || null,
+                      matchScore: course.match_score ?? null,
+                      rating: course.rating ?? null,
+                      difficulty: course.difficulty_level || null,
+                      university: course.university || null,
+                      matchedSkills: course.matched_skills || []
                     }))} />
                   ) : (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">

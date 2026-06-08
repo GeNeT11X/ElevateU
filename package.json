@@ -1,0 +1,16 @@
+{
+  "name": "elevateuplus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Run the full ElevateU+ stack (Flask course recommender + Node backend + React frontend) with a single command.",
+  "scripts": {
+    "dev:flask": "courserecom\\.venv\\Scripts\\python.exe courserecom\\run.py",
+    "dev:backend": "npm start --prefix elevateuai/backend",
+    "dev:frontend": "npm run dev --prefix elevateuai/frontend",
+    "dev": "concurrently -k -n flask,backend,frontend -c magenta,blue,green \"npm:dev:flask\" \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "install:all": "npm install && npm install --prefix elevateuai/backend && npm install --prefix elevateuai/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

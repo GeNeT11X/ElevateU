@@ -1,19 +1,22 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-import sys
 import os
+import importlib.util
 
-# Add the app directory to the path to import the Recommender model
-sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
+# Import the Recommender model directly from its file. We deliberately bypass the
+# `app.api` package __init__ (which also imports the legacy OpenAI chat helper)
+# so this microservice has no dependency on openai or the rest of the web app.
 try:
-    from api.model import Recommender
-    # Initialize the recommender model
-    recommender = Recommender()
-    print("✓ Recommender model loaded successfully")
+    _model_path = os.path.join(os.path.dirname(__file__), 'app', 'api', 'model.py')
+    _spec = importlib.util.spec_from_file_location("recommender_model", _model_path)
+    _model_module = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_model_module)
+    recommender = _model_module.Recommender()
+    print(f"[OK] Recommender model loaded successfully ({len(recommender.df)} courses indexed)")
 except Exception as e:
-    print(f"⚠ Warning: Could not load Recommender model: {str(e)}")
-    print("  Falling back to Coursera API only")
+    print(f"[WARN] Could not load Recommender model: {str(e)}")
+    print("  Falling back to live course provider APIs only")
     recommender = None
 
 app = Flask(__name__)
@@ -145,39 +148,32 @@ def get_khan_academy_courses(skill, seen_titles, limit=2):
 def get_recommended_courses(skills):
     recommended_courses = []
     seen_titles = set()  # To avoid duplicates
-    
-    # First, try using the Recommender model with the Coursera dataset
+
+    # Primary source: the content-based recommender ranks the full Coursera
+    # catalogue against the candidate's skills using TF-IDF cosine similarity.
+    # These results are relevant, scored and offline-reliable.
     if recommender:
-        for skill in skills[:5]:  # Limit to first 5 skills
-            try:
-                similar_courses = recommender.recommend(skill)
-                for course_name, course_data in similar_courses[:3]:
-                    if course_name not in seen_titles:
-                        seen_titles.add(course_name)
-                        recommended_courses.append({
-                            "title": course_name,
-                            "platform": "Coursera",
-                            "provider": "Coursera",
-                            "url": course_data.get('url', ''),
-                            "similarity": course_data.get('similarity', 0),
-                            "category": skill,
-                            "image": None
-                        })
-            except Exception as e:
-                print(f"Error using Recommender model for skill '{skill}': {str(e)}")
-                continue
-    
-    # Fetch from multiple course providers
-    providers = [
-        ("Coursera", get_coursera_courses, 2),
+        try:
+            for course in recommender.recommend_courses(skills, top_n=12):
+                title = course.get("title")
+                if title and title not in seen_titles:
+                    seen_titles.add(title)
+                    recommended_courses.append(course)
+        except Exception as e:
+            print(f"Error using Recommender model: {str(e)}")
+
+    # Supplement with a small number of live results from other providers so the
+    # candidate sees options beyond Coursera. These calls are best-effort: any
+    # failure (timeout, rate limit, offline) is swallowed and simply skipped.
+    supplementary_providers = [
         ("Khan Academy", get_khan_academy_courses, 1),
         ("Udemy", get_udemy_courses, 1),
         ("edX", get_edx_courses, 1),
     ]
-    
-    for skill in skills[:4]:  # Process first 4 skills
-        for provider_name, provider_func, limit in providers:
-            if len(recommended_courses) >= 15:  # Limit total results
+
+    for skill in skills[:3]:  # Process first 3 skills
+        for provider_name, provider_func, limit in supplementary_providers:
+            if len(recommended_courses) >= 18:  # Cap total results
                 break
             try:
                 courses = provider_func(skill, seen_titles, limit)
@@ -185,13 +181,15 @@ def get_recommended_courses(skills):
             except Exception as e:
                 print(f"Error fetching from {provider_name} for skill '{skill}': {str(e)}")
                 continue
-        if len(recommended_courses) >= 15:
+        if len(recommended_courses) >= 18:
             break
-    
+
     return {
-        "recommended_courses": recommended_courses[:15],  # Return top 15
+        "recommended_courses": recommended_courses[:18],  # Return top results
         "count": len(recommended_courses),
-        "providers": list(set([c.get("provider", "Unknown") for c in recommended_courses]))
+        "providers": list(dict.fromkeys(c.get("provider", "Unknown")
+                                        for c in recommended_courses)),
+        "engine": "content-based-tfidf" if recommender else "live-api-fallback",
     }
 
 if __name__ == '__main__':

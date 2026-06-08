@@ -1,0 +1,7 @@
+# Root-level orchestrator
+node_modules/
+npm-debug.log*
+
+# Python caches
+__pycache__/
+*.pyc
